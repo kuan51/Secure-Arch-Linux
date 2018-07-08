@@ -1,0 +1,182 @@
+Pre-Installation Tasks
+1. Disk wipe:
+  # fdisk -l
+  Look for 2 lines like the following
+  # Disk /dev/sda: 477 GiB, 512110190592 bytes, 1000215216 sectors
+  # Sector size (logical/physical): 512 bytes / 4096 bytes
+  Calculate optimal sector size (Using physical sectors)
+  # let "count = 512110190592 / 4096"
+  # block=4096
+  # dd if=/dev/urandom of=/dev/sda bs=$block count=$count seek=0 status=progress
+2. Set the keyboard layout:
+  List available layouts
+  # ls /usr/share/kbd/keymaps/**/*.map.gz
+  Load a layout. Default is us_en
+  # loadkeys de-latin1
+3. Check if your motherboard is BIOS or UEFI:
+  If the directory doesnt exist, you probably have a BIOS
+  # ls /sys/firmware/efi/efivars
+4. Connect to the internet with wifi-menu:
+  # wifi-menu
+5. Set up the system clock:
+  # timedatectl set-ntp true
+  You can check the system clock with:
+  # timedatectl status
+6. Partition your harddrive:
+  List all partitions on your drive.
+  # fdisk -l
+  Pick the drive to partition
+  # fdisk /dev/sda
+  Create GPT partition table
+  # g
+  Create BIOS boot partition
+  # n
+  # 1
+  # 2048
+  # 4095
+  # t
+  # 4
+  Create EFI partition
+  # n
+  # 2
+  # 4096
+  # 1130495
+  # t
+  # 2
+  # 1
+  Create partition for encrypted /boot (Grub will be stored here)
+  # n
+  # 3
+  # 1130496
+  # 1540095
+  Create LVM partition with rest of storage (This will contain /root, /swap, /home)
+  # n
+  # 4
+  # Accept the Default
+  # Accept the Default
+  # t
+  # 4
+  # 31
+  Print the partition table and confirm your partitions look like this:
+  # p
+  # Number  Start (sector)    End (sector)  Size       Code  Name
+  # 1            2048            4095   1024.0 KiB  EF02  BIOS boot partition
+  # 2            4096         1130495   550.0 MiB   EF00  EFI System
+  # 3         1130496         1540095   200.0 MiB   8300  Linux filesystem
+  # 4         1540096        69205982   477 GiB    8E00  Linux LVM
+  If correct, write partition tables
+  # w
+  Reboot. This ensures the new partition table is used.
+  # reboot now
+7. Creating the LUKS container
+  # cryptsetup luksFormat --type luks2 /dev/sda4
+  Open the container
+  # cryptsetup open /dev/sda4 cryptlvm
+  The LUKS container should be available in /dev/mapper/cryptlvm
+  # pvcreate /dev/mapper/cryptlvm
+  # vgcreate crypted /dev/mapper/cryptlvm
+  Create logical volumes root, home, swap
+  Amount_RAM___|_____Recommended_swap___|___Swap_for_Hibernation
+  <2GB         |     2x RAM             |   3x RAM
+  >2-8GB       |     == RAM             |   2x RAM
+  >8-64GB      |     >4GB RAM           |   1.5x RAM
+  >64GB        |     >4GB RAM           |   Not Recommended
+  # lvcreate -L 16G crypted -n swap
+  # lvcreate -L 35G crypted -n root
+  # lvcreate -l 100%FREE crypted -n home
+  Create filesystems for logical volumes
+  # mkfs.ext4 /dev/crypted/root
+  # mkfs.ext4 /dev/crypted/home
+  # mkswap /dev/crypted/swap
+  Mount New filesystems
+  # mount /dev/crypted/root /mnt
+  # mkdir /mnt/home
+  # mount /dev/crypted/home /mnt/home
+  # swapon /dev/crypted/swap
+8. Set up the encrypted boot partition
+  # cryptsetup luksFormat /dev/sda3
+  # cryptsetup open /dev/sda3 cryptboot
+  # mkfs.ext4 /dev/mapper/cryptboot
+  # mkdir /mnt/boot
+  # mount /dev/mapper/cryptboot /mnt/boot
+  Create EFI mountpoint
+  # mkfs.fat -F32 /dev/sda2
+  # mkdir /mnt/boot/efi
+  # mount /dev/sda2 /mnt/boot/efi
+9. Checkpoint - You should have something along these lines:
+  # lsblk
+  # NAME                  MAJ:MIN RM   SIZE RO TYPE  MOUNTPOINT
+  # sda                   8:0      0   200G  0 disk
+  # ├─sda1                8:1      0     1M  0 part
+  # ├─sda2                8:2      0   550M  0 part  /boot/efi
+  # ├─sda3                8:3      0   200M  0 part
+  # │ └─cryptboot         254:0    0   198M  0 crypt /boot
+  # └─sda4                8:4      0   100G  0 part
+  #   └─cryptlvm          254:1    0   100G  0 crypt
+  #     crypted-swap 254:2    0     16G  0 lvm   [SWAP]
+  #     ├─crypted-root 254:3    0    32G  0 lvm   /
+  #     └─crypted-home 254:4    0    60G  0 lvm   /home
+10. Installation:
+  # pacstrap /mnt base base-devel dialog wpa_supplicant
+11. System configuration:
+  # genfstab -U /mnt >> /mnt/etc/fstab
+  Change into the new system
+  # arch-chroot /mnt
+  Set local time
+  # ln -sf /usr/share/zoneinfo/[region]/[city] /etc/localtime
+  Set hardware clock
+  # hwclock --systohc
+  Uncomment en_US.UTF-8 UTF-8 and any other locales in /etc/locale.gen
+  Then generate new locales with
+  # locale-gen
+  Pick a hostname
+  # echo "[hostname]" > /etc/hostname
+  Edit /etc/hosts and append the following
+  # 127.0.0.1     localhost
+  # ::1           localhost
+  # 127.0.0.1     [hostname].local [hostname]
+  Set root password
+  # passwd
+11. Configure grub, kernel, etc:
+  Set up systemd hook in /etc/mkinitcpio.conf
+  # HOOKS=(base systemd autodetect keyboard sd-vconsole modconf block sd-encrypt sd-lvm2 filesystems fsck)
+  Reload initramfs
+  # mkinitcpio -p linux
+  Download and install GRUB
+  # pacman -S gub efibootmgr
+  Get the UUID for /dev/sda4
+  # blkid /dev/sda4
+  Edit /etc/default/grub
+  # GRUB_CMDLINE_LINUX="rd.luks.name=64475e2b-bbd4-4e81-af07-180e09b5bdc9=cryptlvm"
+  Uncomment this line
+  # GRUB_ENABLE_CRYPTODISK=y
+  Install then generate new GUB configuration
+  # grub-mkconfig -o /boot/grub/grub.cfg
+  # grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=GRUB --recheck
+  Edit /etc/crypttab
+  # cryptboot   /dev/sda3   none    luks
+  Arch Linux is installed. Boot into the new system for the following.
+12. Install a GUI desktop:
+  # pacman -S xorg xorg-server xorg-xinit xorg-server-utils xorg-twm xorg-xclock
+  For GNOME:
+  # pacman -S gnome gnome-extra
+  For KDE:
+  # pacman -S plasma
+  For Cinnamon:
+  # pacman -S cinnamon nemo-fileroller
+  For MATE:
+  # pacman -S mate mate-extra
+  For XFCE:
+  # pacman -S xfce4 xfce4-goodies
+13. Install a display manager:
+  For Gnome Display Manager (GDM)
+  # systemctl enable gdm.service
+  For Mint Display Manager (MDM)
+  For Simple Login Manager (SLiM)
+  For Simple Desktop Display Manager (SDDM)
+  For LXDM
+  # pacman -S lxdm
+  # systemctl enable lxdm.service
+  For LightDM
+14. Configure speakers and sound:
+  #
