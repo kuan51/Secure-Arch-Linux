@@ -1,4 +1,3 @@
-Pre-Installation Tasks
 1. Disk wipe:
   # fdisk -l
   Look for 2 lines like the following
@@ -117,7 +116,7 @@ Pre-Installation Tasks
   #     ├─crypted-root 254:3    0    32G  0 lvm   /
   #     └─crypted-home 254:4    0    60G  0 lvm   /home
 10. Installation:
-  # pacstrap /mnt base base-devel dialog wpa_supplicant
+  # pacstrap /mnt base base-devel dialog wpa_supplicant gnupg yubikey-manager yubikey-personalization
 11. System configuration:
   # genfstab -U /mnt >> /mnt/etc/fstab
   Change into the new system
@@ -178,5 +177,48 @@ Pre-Installation Tasks
   # pacman -S lxdm
   # systemctl enable lxdm.service
   For LightDM
-14. Configure speakers and sound:
-  #
+14. Reboot into new install. Unplug the usb drive and boot from hd.
+  # reboot now
+15. Configuring the YubiKey:
+  Check the YubiKey for version 1.0.5 or later
+  # gpg-connect-agent --hex "scd apdu 00 f1 00 00" /bye
+  Should return the following
+  # D[0000]  01 00 05 90 00                                     .....
+  # OK
+  Edit Yubikey configuration
+  # gpg --card-edit
+  Generate a PGP Key
+  # gpg --full-generate-key
+  # 1
+  # 4096
+  # 0
+  # y
+  # [Enter a name or nickname]
+  # [Enter a email address]
+  # O
+  # [Enter a passphrase]
+  Note the uid
+  # yourname <yourname@email.com>
+  Add authentication key
+  # gpg --expert --edit-key yourname
+  # addkey
+  # 8
+  # A
+  # S
+  # E
+  # Q
+  # 4096
+  # 0
+  # y
+  # y
+  Backup Your Key (Optional but recommended)
+  # gpg --export-secret-key --armor yourname > backup.pgp
+  Import to the YubiKey
+  # gpg --edit-key yourname
+  # toggle
+  # keytocard
+  # y
+  # 1
+  # key 1
+  # keytocard
+  # 2
