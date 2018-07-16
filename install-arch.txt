@@ -116,7 +116,7 @@
   #     ├─crypted-root 254:3    0    32G  0 lvm   /
   #     └─crypted-home 254:4    0    60G  0 lvm   /home
 10. Installation:
-  # pacstrap /mnt base base-devel dialog wpa_supplicant gnupg yubikey-manager yubikey-personalization
+  # pacstrap /mnt base base-devel dialog wpa_supplicant gnupg yubikey-manager yubikey-personalization archlinux-keyring
 11. System configuration:
   # genfstab -U /mnt >> /mnt/etc/fstab
   Change into the new system
@@ -180,13 +180,26 @@
 14. Reboot into new install. Unplug the usb drive and boot from hd.
   # reboot now
 15. Configuring the YubiKey:
+  Install git and clone the Yubioath project into a applications folder
+  # pacman -S git
+  # mkdir [path to directory] && cd "$_"
+  Get the Yubikey software
+  # git clone https://aur.archlinux.org/yubico-yubioath-desktop.git
+  Check install scripts for malicious configurations
+  # cd yubico-yubioath-desktop
+  # less PKGBUILD
+  Compile and install
+  # makepkg -sic
+  If you get a FAILED error about an unkown public key,
+  # Verifying source file signatures with gpg...yubioath-desktop-4.3.4.tar.gz ... FAILED (unknown public key 06FC004369E7D338)
+  Use to gpg to import it and run the makepkg command again
+  # gpg --recv-key 06FC004369E7D338
+  Yubi authenticator should work now. Enable pcscd if it shows "Connecting to Yubikey..." but it never does anything
   Check the YubiKey for version 1.0.5 or later
   # gpg-connect-agent --hex "scd apdu 00 f1 00 00" /bye
   Should return the following
   # D[0000]  01 00 05 90 00                                     .....
   # OK
-  Edit Yubikey configuration
-  # gpg --card-edit
   Generate a PGP Key
   # gpg --full-generate-key
   # 1
@@ -207,7 +220,7 @@
   # S
   # E
   # Q
-  # 4096
+  # 2048
   # 0
   # y
   # y
