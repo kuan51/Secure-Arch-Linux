@@ -257,3 +257,18 @@
   # keytocard
   # 3
   # quit
+  Changing boot partition to unlock with pgp key
+  # dd if=/dev/urandom bs=128 count=1 | gpg --encrypt -r [email address from pgp key] > key.pgp
+  # gpg --decrypt -o /dev/shm/disk.bin key.pgp
+  # sudo cryptsetup luksAddKey /dev/sda2 /dev/shm/disk.bin
+  # shred -u -n1 /dev/shm/disk.bin
+  Edit /etc/crypttab and append this line
+  # crypted     /dev/sda2     [path to key.pgp]     discard
+  Import your pgp public key to the root users keychain
+  # gpg --export --armor [pgp uid] > [pgp uid].pub
+  # sudo su
+  # gpg --import [pgp uid].pub
+  Recompile kernel image
+  # mkinitcpio -p linux
+  If you want to remove the password from the boot partition and require the yubikey
+  # sudo cryptSetup luksRemoveKey /dev/sda2 [enter the passphrase you want to remove]
