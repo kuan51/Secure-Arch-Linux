@@ -197,19 +197,35 @@
   Yubi authenticator should work now. Enable pcscd if it shows "Connecting to Yubikey..." but it never does anything
   Check the YubiKey for version 1.0.5 or later
   # gpg-connect-agent --hex "scd apdu 00 f1 00 00" /bye
-  Should return the following
+  Should return the following where 01 00 05 is version 1.0.5
   # D[0000]  01 00 05 90 00                                     .....
   # OK
-  Generate a PGP Key
-  # gpg --full-generate-key
+  Set Yubikey mode 
+  (Removing OTP will stop the yubikey from working with ykpersonalize. CCID is required to import a pgp key.)
+    0 = OTP only
+    1 = CCID only
+    2 = OTP/CCID
+    3 = U2F only
+    4 = OTP/U2F
+    5 = U2F/CCID
+    6 = OTP/U2F/CCID
+  # ykpersonalize -m6
+  Edit the yubikey with gpg and change deafult pin and admin pin
+  Default pin: 123456
+  Default admin pin: 12345678
+  # gpg --card-edit
+  # admin
+  # passwd
   # 1
-  # 4096
-  # 0
-  # y
+  # 3
+  # q
+  Change cardholder name
+  # name
+  Generate a PGP Key
+  # gpg --gen-key
   # [Enter a name or nickname]
-  # [Enter a email address]
-  # O
-  # [Enter a passphrase]
+  # [Enter a real or fake email]
+  # o
   Note the uid
   # yourname <yourname@email.com>
   Add authentication key
@@ -224,6 +240,7 @@
   # 0
   # y
   # y
+  # quit
   Backup Your Key (Optional but recommended)
   # gpg --export-secret-key --armor yourname > backup.pgp
   Import to the YubiKey
@@ -235,3 +252,8 @@
   # key 1
   # keytocard
   # 2
+  # key 1
+  # key 2
+  # keytocard
+  # 3
+  # quit
