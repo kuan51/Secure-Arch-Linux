@@ -1,0 +1,44 @@
+1. Install Windows first and leave room for Linux. Make sure to install Windows using UEFI. 
+   It should create a ESP or EFI System Partition on /dev/sda1 or /dev/sda2 (although it could be on any partition).
+2. Create a Archlinux UEFI bootable USB and boot from it.
+3. Disk wipe:
+  # fdisk -l
+  Look for 2 lines like the following
+  # Disk /dev/sda: 477 GiB, 512110190592 bytes, 1000215216 sectors
+  # Sector size (logical/physical): 512 bytes / 4096 bytes
+  Calculate optimal sector size (Using physical sectors)
+  # let "count = 512110190592 / 4096"
+  # block=4096
+  # dd if=/dev/zero of=/dev/sda bs=$block count=$count seek=0 status=progress
+4. Set the keyboard layout:
+  List available layouts
+  # ls /usr/share/kbd/keymaps/**/*.map.gz
+  Load a layout. Default is us_en
+  # loadkeys de-latin1
+5. Check if you booted in UEFI:
+  If the directory doesnt exist, you probably have a BIOS
+  # ls /sys/firmware/efi/efivars
+6. Connect to wifi:
+  # wifi-menu
+7. Set up the system clock:
+  # timedatectl set-ntp true
+  Check the system clock was enabled with:
+  # timedatectl status
+8. Partition your harddrive:
+  List all partitions on your drive.
+  # fdisk -l
+  Pick the drive to partition
+  # fdisk /dev/sda
+  Create GPT partition table
+  # g
+  IMPORTANT: Windows will install the boot partition for you. Thus its not necessary to create another one.
+  Create a LVM partition with the remaining storage space (This will contain /root, /swap, /home)
+  # n
+  # 5
+  # Accept the Default
+  # Accept the Default
+  # t
+  # 4
+  # 31
+  Print the partition table and confirm your partitions look like this:
+  # p
