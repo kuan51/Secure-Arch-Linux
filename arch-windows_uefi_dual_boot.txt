@@ -38,7 +38,43 @@
   # Accept the Default
   # Accept the Default
   # t
-  # 4
+  # 5
   # 31
-  Print the partition table and confirm your partitions look like this:
+  Print the partition table and confirm your partitions look something like this:
   # p
+  # Number  Start (sector)    End (sector)  Size     Name
+  # 1            2048            4095   1024.0 KiB   Windows Recovery
+  # 2            4096         1130495   550.0 MiB    EFI System
+  # 3         1130496         1540095   200.0 MiB    Microsoft reserved
+  # 4         1540096        69205982   477 GiB      Microsoft Basic Data
+  # 5         69205983       97845621   480 GiB      Linux LVM
+  If correct, write partition tables
+  # w
+9. Creating the LUKS container. The XTS cipher cuts the size in half, so to use AES-256 instead of AES-128,
+   you have to set the XTS key-size to 512. Also, /dev/random is used instead of /dev/urandom to provide better 
+   long term cryptographic keys.
+  # cryptsetup --type luks2 --cipher aes-xts-plain64 --key-size 512 --hash sha512 --use-random luksFormat /dev/sda5
+  Open the container
+  # cryptsetup open /dev/sda5 cryptlvm
+  The LUKS container should be available in /dev/mapper/cryptlvm
+  # pvcreate /dev/mapper/cryptlvm
+  # vgcreate crypted /dev/mapper/cryptlvm
+  Create logical volumes root, home, swap
+  Amount_RAM___|_____Recommended_swap___|___Swap_for_Hibernation
+  <2GB         |     2x RAM             |   3x RAM
+  >2-8GB       |     == RAM             |   2x RAM
+  >8-64GB      |     >4GB RAM           |   1.5x RAM
+  >64GB        |     >4GB RAM           |   Not Recommended
+  # lvcreate -L 16G crypted -n swap
+  # lvcreate -L 35G crypted -n root
+  # lvcreate -l 100%FREE crypted -n home
+  Create filesystems for logical volumes
+  # mkfs.ext2 /dev/crypted/root
+  # mkfs.ext4 /dev/crypted/home
+  # mkswap /dev/crypted/swap
+  Mount New filesystems
+  # mount /dev/crypted/root /mnt
+  # mkdir /mnt/home
+  # mount /dev/crypted/home /mnt/home
+  # swapon /dev/crypted/swap
+10. Install Archlinux
