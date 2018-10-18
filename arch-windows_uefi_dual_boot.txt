@@ -160,11 +160,12 @@
   # systemctl enable lxdm.service
   For LightDM
   # pacman -S lxdm lightdm-webkit2-greeter
-  Now edit the LightDM config /etc/lightdm/lightdm.conf to enable to greeter
-   [Seat:*]
-   ...
-   greeter-session=lightdm-webkit2-greeter
-   ...
-   systemctl enable lightdm.service
+  Now edit the LightDM config /etc/lightdm/lightdm.conf to enable the greeter
+  # [Seat:*]
+  # ...
+  # greeter-session=lightdm-webkit2-greeter
+  # ...
+  Next, enable the lightdm daemon
+  # systemctl enable lightdm.service
 15. Reboot into the new install. You should now be able to choose from Windows or Archlinux during the boot process.
   # reboot now
