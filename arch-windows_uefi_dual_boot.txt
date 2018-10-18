@@ -132,7 +132,7 @@
   If you have AMD instead of Intel, use /amd-ucode.img instead
   # initrd  /intel-ucode.img
   # initrd  /initramfs-linux.img
-  # options rd.luks.name=64475e2b-bbd4-4e81-af07-180e09b5bdc9=cryptlvm root=/dev/crypted/root rw
+  # options rd.luks.name=64475e2b-bbd4-4e81-af07-180e09b5bdc9=cryptlvm root=/dev/crypted/root resume=/dev/crypted/swap rw
   Update the bootloader with the new entry (the windows entry will be automatically detected)
   bootctl --path=/boot update
   Edit /etc/crypttab and add your encypted lvm partition.
