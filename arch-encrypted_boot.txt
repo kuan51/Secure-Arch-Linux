@@ -200,7 +200,7 @@
   Should return the following where 01 00 05 is version 1.0.5
   # D[0000]  01 00 05 90 00                                     .....
   # OK
-  Set Yubikey mode 
+  Set Yubikey mode
   (Removing OTP will stop the yubikey from working with ykpersonalize. CCID is required to import a pgp key.)
     0 = OTP only
     1 = CCID only
@@ -268,6 +268,8 @@
   # gpg --export --armor [pgp uid] > [pgp uid].pub
   # sudo su
   # gpg --import [pgp uid].pub
+  Update /etc/mkinitcpio.conf and replace the ecnrypt hook with scencrypt.
+  You cannot have both encrypt and scencrypt enabled at the same time.
   Recompile kernel image
   # mkinitcpio -p linux
   If you want to remove the password from the boot partition and require the yubikey
