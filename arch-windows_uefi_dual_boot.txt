@@ -44,7 +44,7 @@
   # p
   # Number  Start (sector)    End (sector)  Size     Name
   # 1            2048            4095   1024.0 KiB   Windows Recovery
-  # 2            4096         1130495   550.0 MiB    EFI System
+  # 2            4096         1130495   99.0 MiB    EFI System
   # 3         1130496         1540095   200.0 MiB    Microsoft reserved
   # 4         1540096        69205982   477 GiB      Microsoft Basic Data
   # 5         69205983       97845621   480 GiB      Linux LVM
@@ -75,6 +75,96 @@
   Mount New filesystems
   # mount /dev/crypted/root /mnt
   # mkdir /mnt/home
+  # mkdir /mnt/boot
   # mount /dev/crypted/home /mnt/home
+  # mount /dev/sda2 /mnt/boot
   # swapon /dev/crypted/swap
 10. Install Archlinux
+  # pacstrap /mnt base base-devel dialog wpa_supplicant gnupg archlinux-keyring vim
+11. System configuration:
+  # genfstab -U /mnt >> /mnt/etc/fstab
+  Change into the new system
+  # arch-chroot /mnt
+  Set local time
+  # ln -sf /usr/share/zoneinfo/[region]/[city] /etc/localtime
+  Set hardware clock
+  # hwclock --systohc
+  Uncomment en_US.UTF-8 UTF-8 and any other locales in /etc/locale.gen
+  Then generate new locales with
+  # locale-gen
+  Pick a hostname
+  # echo "[hostname]" > /etc/hostname
+  Edit /etc/hosts and append the following
+  # 127.0.0.1     localhost
+  # 127.0.0.1     [hostname].local [hostname]
+  # ::1           localhost
+  # ::1           [hostname].local [hostname]
+  Set root password
+  # passwd
+12. Configure grub, kernel, etc:
+  Set up systemd hook in /etc/mkinitcpio.conf
+  # HOOKS=(base systemd autodetect keyboard sd-vconsole modconf block sd-encrypt sd-lvm2 filesystems fsck)
+  Reload initramfs
+  # mkinitcpio -p linux
+  Download efibootmgr
+  # pacman -S efibootmgr
+  For UEFI, systemd bootloader is recommended over Grub. Systemd bootloader is already part of the OS 
+  and just needs to be installed.
+  # bootctl --path=/boot install
+  Edit /boot/loader/loader.conf to set up main bootloader configuration.
+  # default  arch
+  # timeout  5
+  Editor must be set to no, else an attacker could use init=/bin/bash to bypass the root password.
+  # editor   no
+  # auto-entries 1
+  # auto-firmware 1
+  # console-mode max
+  Install the microcode package.
+  For Intel
+  # pacman -S intel-ucode
+  For AMD
+  # pacman -S amd-ucode
+  Get the UUID for your ESP partition. In my case it is /dev/sda2
+  # blkid -s UUID -o value /dev/sda2
+  Edit /boot/loader/entries/arch.conf to create the bootloader entry for arch
+  # title   Arch Linux
+  # linux   /vmlinuz-linux
+  If you have AMD instead of Intel, use /amd-ucode.img instead
+  # initrd  /intel-ucode.img
+  # initrd  /initramfs-linux.img
+  # options rd.luks.name=64475e2b-bbd4-4e81-af07-180e09b5bdc9=cryptlvm root=/dev/crypted/root rw
+  Update the bootloader with the new entry (the windows entry will be automatically detected)
+  bootctl --path=/boot update
+  Edit /etc/crypttab and add your encypted lvm partition.
+  # cryptlvm   /dev/sda5
+13. Install a GUI desktop:
+  # pacman -S xorg xorg-server xorg-xinit xorg-apps xorg-twm xorg-xclock
+  For GNOME:
+  # pacman -S gnome gnome-extra
+  For KDE:
+  # pacman -S plasma
+  For Cinnamon:
+  # pacman -S cinnamon nemo-fileroller
+  For MATE:
+  # pacman -S mate mate-extra
+  For XFCE:
+  # pacman -S xfce4 xfce4-goodies
+14. Install a display manager:
+  For Gnome Display Manager (GDM)
+  # systemctl enable gdm.service
+  For Simple Desktop Display Manager (SDDM)
+  # pacman -S sddm sddm-kcm
+  # systemctl enable sddm.service
+  For LXDM
+  # pacman -S lxdm
+  # systemctl enable lxdm.service
+  For LightDM
+  # pacman -S lxdm lightdm-webkit2-greeter
+  Now edit the LightDM config /etc/lightdm/lightdm.conf to enable to greeter
+   [Seat:*]
+   ...
+   greeter-session=lightdm-webkit2-greeter
+   ...
+   systemctl enable lightdm.service
+15. Reboot into the new install. You should now be able to choose from Windows or Archlinux during the boot process.
+  # reboot now
