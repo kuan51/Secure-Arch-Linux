@@ -159,7 +159,7 @@
   # pacman -S lxdm
   # systemctl enable lxdm.service
   For LightDM
-  # pacman -S lxdm lightdm-webkit2-greeter
+  # pacman -S lightdm lightdm-webkit2-greeter
   Now edit the LightDM config /etc/lightdm/lightdm.conf to enable the greeter
   # [Seat:*]
   # ...
