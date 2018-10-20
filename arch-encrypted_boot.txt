@@ -142,9 +142,9 @@
   Reload initramfs
   # mkinitcpio -p linux
   Download and install GRUB
-  # pacman -S gub efibootmgr
+  # pacman -S grub efibootmgr
   Get the UUID for /dev/sda4
-  # blkid /dev/sda4
+  # blkid -s UUID -o value /dev/sda4
   Edit /etc/default/grub
   # GRUB_CMDLINE_LINUX="rd.luks.name=64475e2b-bbd4-4e81-af07-180e09b5bdc9=cryptlvm"
   Uncomment this line
